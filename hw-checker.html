@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作业检查</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif; min-height: 100vh; }
+
+  /* ===== 工具模式 ===== */
+  .tool-mode { background: #f5f5f5; min-height: 100vh; padding-bottom: 120px; }
+  .header { background: #4A90E2; color: white; padding: 16px 16px 12px; position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab-btn { padding: 6px 14px; border-radius: 20px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.25); color: white; transition: all 0.2s; }
+  .tab-btn.active { background: white; color: #4A90E2; }
+  .mode-switch { display: flex; justify-content: center; gap: 8px; margin: 10px 12px 0; flex-wrap: wrap; }
+  .mode-btn { padding: 7px 18px; border-radius: 20px; border: 1.5px solid #4A90E2; background: white; color: #4A90E2; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .mode-btn.active { background: #4A90E2; color: white; }
+  .stats-bar { display: flex; justify-content: space-around; background: white; padding: 12px 16px; margin: 12px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); position: sticky; top: 110px; z-index: 99; }
+  .tool-body { display: flex; }
+  .tool-content { flex: 1; min-width: 0; }
+
+  /* 右侧字母导航 */
+  .letter-nav { position: fixed; right: 4px; top: 50%; transform: translateY(-50%); z-index: 500; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .letter-nav-item { font-size: 10px; color: #4A90E2; font-weight: 600; cursor: pointer; width: 18px; height: 16px; display: flex; align-items: center; justify-content: center; border-radius: 3px; transition: background 0.1s; user-select: none; background: rgba(255,255,255,0.9); }
+  .letter-nav-item:active { background: #4A90E2; color: white; }
+
+  /* 学生卡片 */
+  .student-card { background: white; margin: 8px 12px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; scroll-margin-top: 190px; }
+  .stat-item { text-align: center; }
+  .stat-num { font-size: 24px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+  .stat-green { color: #52c41a; }
+  .stat-yellow { color: #faad14; }
+  .stat-red { color: #ff4d4f; }
+  .section-title { padding: 8px 16px 4px; font-size: 12px; color: #999; font-weight: 500; }
+  .student-name { padding: 12px 16px; font-size: 15px; font-weight: 600; border-bottom: 1px solid #f0f0f0; color: #333; }
+  .hw-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid #f7f7f7; }
+  .hw-row:last-child { border-bottom: none; }
+  .hw-label { font-size: 13px; color: #555; min-width: 80px; }
+  .hw-opts { display: flex; gap: 6px; }
+  .hw-opt { padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid #e0e0e0; background: white; color: #ccc; transition: all 0.12s; user-select: none; }
+  .hw-opt:active { transform: scale(0.95); }
+  .hw-opt.selected { font-weight: 700; }
+  .hw-opt-green.selected { background: #f6ffed; border-color: #52c41a; color: #52c41a; }
+  .hw-opt-yellow.selected { background: #fffbe6; border-color: #faad14; color: #faad14; }
+  .hw-opt-red.selected { background: #fff2f0; border-color: #ff4d4f; color: #ff4d4f; }
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e8e8e8; padding: 10px 16px; z-index: 200; display: flex; gap: 10px; align-items: center; }
+  .date-input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; }
+  .action-btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .save-btn { background: #4A90E2; color: white; }
+  .export-btn { background: #f5f5f5; color: #555; }
+
+  /* ===== 展示模式 ===== */
+  .display-mode { background: #ffffff; min-height: 100vh; }
+  .display-header { text-align: center; padding: 24px 16px 8px; }
+  .display-title { font-size: 22px; font-weight: 700; color: #222; letter-spacing: 1px; }
+  .display-date { font-size: 13px; color: #999; margin-top: 4px; }
+  .display-class-tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+  .display-class-btn { padding: 7px 16px; border-radius: 20px; border: 1.5px solid #ddd; background: white; cursor: pointer; font-size: 13px; color: #555; transition: all 0.2s; }
+  .display-class-btn.active { background: #4A90E2; border-color: #4A90E2; color: white; }
+  .display-summary { display: flex; justify-content: center; gap: 24px; padding: 16px; }
+  .display-summary-item { text-align: center; min-width: 60px; }
+  .display-summary-num { font-size: 30px; font-weight: 800; line-height: 1; }
+  .display-summary-label { font-size: 11px; color: #999; margin-top: 3px; }
+  .display-rate { text-align: center; padding: 0 16px 12px; }
+  .display-rate-label { font-size: 12px; color: #999; margin-bottom: 6px; }
+  .display-rate-bar { height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden; margin-bottom: 4px; }
+  .display-rate-fill { height: 100%; background: linear-gradient(90deg, #52c41a, #73d13d); border-radius: 5px; transition: width 0.4s; }
+  .display-rate-text { font-size: 14px; color: #52c41a; font-weight: 600; }
+  .display-legend { display: flex; justify-content: center; gap: 14px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .display-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #999; }
+  .display-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .display-divider { border: none; border-top: 1px dashed #eee; margin: 0 16px 12px; }
+  .display-section-title { padding: 4px 16px 4px; font-size: 12px; color: #bbb; font-weight: 500; }
+  .display-student-row { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid #f7f7f7; }
+  .display-student-row:last-child { border-bottom: none; }
+  .display-student-idx { font-size: 12px; color: #ccc; width: 20px; text-align: right; flex-shrink: 0; }
+  .display-student-name { font-size: 14px; color: #333; width: 68px; flex-shrink: 0; font-weight: 500; }
+  .display-hw-pills { display: flex; gap: 6px; flex: 1; }
+  .display-hw-pill { flex: 1; text-align: center; padding: 5px 4px; border-radius: 6px; font-size: 11px; font-weight: 600; min-width: 0; }
+  .display-footer { text-align: center; font-size: 11px; color: #ddd; margin-top: 20px; padding-bottom: 20px; }
+  .display-mode-bar { display: flex; justify-content: center; margin: 10px 12px 0; }
+  .display-mode-btn { padding: 7px 20px; border-radius: 20px; border: 1.5px solid #4A90E2; background: white; color: #4A90E2; cursor: pointer; font-size: 13px; font-weight: 600; }
+
+  /* ===== 历史记录模式 ===== */
+  .history-mode { background: #f5f5f5; min-height: 100vh; padding-bottom: 40px; }
+  .history-header { background: #4A90E2; color: white; padding: 16px 16px 14px; position: sticky; top: 0; z-index: 100; }
+  .history-header h2 { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+  .history-mode-bar { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .history-back-btn { padding: 6px 16px; border-radius: 16px; border: none; background: rgba(255,255,255,0.25); color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .history-back-btn:active { background: rgba(255,255,255,0.4); }
+
+  /* 历史列表 */
+  .history-list { padding: 12px; }
+  .history-empty { text-align: center; color: #bbb; font-size: 14px; padding: 60px 20px; }
+  .history-date-card { background: white; border-radius: 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+  .history-date-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; cursor: pointer; }
+  .history-date-title { font-size: 16px; font-weight: 700; color: #333; }
+  .history-date-sub { font-size: 12px; color: #999; margin-top: 2px; }
+  .history-date-arrow { font-size: 16px; color: #ccc; transition: transform 0.2s; }
+  .history-date-arrow.open { transform: rotate(90deg); }
+  .history-date-pills { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .history-cls-pill { font-size: 11px; padding: 3px 9px; border-radius: 10px; font-weight: 600; }
+  .history-cls-pill-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+  .history-cls-pill-yellow { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+  .history-cls-pill-red { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+  .history-date-actions { display: flex; gap: 8px; padding: 0 16px 12px; }
+  .history-action-btn { padding: 7px 14px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .history-view-btn { background: #4A90E2; color: white; }
+  .history-export-btn { background: #f0f0f0; color: #555; }
+  .history-delete-btn { background: #fff2f0; color: #ff4d4f; margin-left: auto; }
+
+  /* 历史详情（内嵌展开） */
+  .history-detail { border-top: 1px solid #f0f0f0; display: none; }
+  .history-detail.open { display: block; }
+  .history-detail-cls-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 6px; }
+  .history-detail-cls-btn { padding: 5px 12px; border-radius: 14px; border: 1.5px solid #ddd; background: white; cursor: pointer; font-size: 12px; color: #555; }
+  .history-detail-cls-btn.active { background: #4A90E2; border-color: #4A90E2; color: white; }
+  .history-detail-body { padding: 8px 16px 14px; }
+  .history-student-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f7f7f7; }
+  .history-student-row:last-child { border-bottom: none; }
+  .history-student-idx { font-size: 11px; color: #ccc; width: 18px; text-align: right; flex-shrink: 0; }
+  .history-student-name { font-size: 13px; color: #333; width: 58px; flex-shrink: 0; font-weight: 500; }
+  .history-hw-pills { display: flex; gap: 4px; flex: 1; }
+  .history-hw-pill { flex: 1; text-align: center; padding: 4px 2px; border-radius: 5px; font-size: 10px; font-weight: 600; min-width: 0; }
+
+  /* ===== 通用 ===== */
+  .pill-gray { background: #f5f5f5; color: #bbb; }
+  .pill-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+  .pill-yellow { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+  .pill-red { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+  .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.75); color: white; padding: 12px 24px; border-radius: 10px; font-size: 14px; z-index: 9999; display: none; pointer-events: none; white-space: nowrap; }
+  .hidden { display: none !important; }
+
+  /* ===== 临时调课 ===== */
+  .temp-add-bar { display: flex; align-items: center; justify-content: flex-end; padding: 6px 12px 0; }
+  .temp-add-btn { padding: 5px 12px; border-radius: 16px; border: 1.5px dashed #4A90E2; background: white; color: #4A90E2; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .temp-add-btn:active { background: #e6f0ff; }
+  .temp-picker-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 800; display: flex; align-items: flex-end; }
+  .temp-picker-sheet { background: white; border-radius: 18px 18px 0 0; width: 100%; max-height: 75vh; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0); }
+  .temp-picker-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 8px; border-bottom: 1px solid #f0f0f0; }
+  .temp-picker-title { font-size: 15px; font-weight: 700; color: #333; }
+  .temp-picker-close { font-size: 22px; color: #bbb; cursor: pointer; line-height: 1; padding: 0 4px; }
+  .temp-picker-search { margin: 10px 16px 8px; padding: 9px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
+  .temp-picker-search:focus { border-color: #4A90E2; }
+  .temp-picker-list { overflow-y: auto; flex: 1; padding: 0 16px 8px; }
+  .temp-picker-cls-title { font-size: 11px; color: #aaa; padding: 10px 0 4px; font-weight: 600; letter-spacing: 0.5px; }
+  .temp-picker-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #f7f7f7; }
+  .temp-picker-item:last-child { border-bottom: none; }
+  .temp-picker-item-name { font-size: 14px; color: #333; font-weight: 500; }
+  .temp-picker-item-from { font-size: 11px; color: #aaa; }
+  .temp-picker-item-add { width: 28px; height: 28px; border-radius: 50%; background: #4A90E2; color: white; border: none; cursor: pointer; font-size: 18px; line-height: 28px; text-align: center; flex-shrink: 0; }
+  .temp-picker-item-added { width: 28px; height: 28px; border-radius: 50%; background: #f0f0f0; color: #ccc; border: none; font-size: 18px; line-height: 28px; text-align: center; flex-shrink: 0; cursor: default; }
+  .student-name-temp { display: flex; align-items: center; justify-content: space-between; }
+  .temp-badge { font-size: 10px; background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; border-radius: 8px; padding: 2px 7px; font-weight: 600; flex-shrink: 0; margin-left: 8px; }
+  .temp-remove-btn { font-size: 11px; color: #bbb; cursor: pointer; padding: 2px 6px; border-radius: 6px; background: #f5f5f5; border: none; flex-shrink: 0; }
+  .manual-add-area { padding: 10px 16px 14px; border-top: 1px solid #f0f0f0; }
+  .manual-add-label { font-size: 11px; color: #aaa; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.5px; }
+  .manual-add-row { display: flex; gap: 8px; align-items: center; }
+  .manual-add-input { flex: 1; padding: 9px 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
+  .manual-add-input:focus { border-color: #4A90E2; }
+  .manual-add-confirm { padding: 9px 16px; border-radius: 10px; background: #4A90E2; color: white; border: none; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .student-card-absent { opacity: 0.38; pointer-events: none; position: relative; }
+  .student-card-absent::after { content: '已调课至其他班'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #aaa; font-weight: 600; background: rgba(255,255,255,0.6); border-radius: 12px; pointer-events: all; cursor: default; }
+
+  /* ===== 云同步弹层 ===== */
+  .cloud-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 900; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .cloud-panel { background: white; border-radius: 18px; width: 100%; max-width: 360px; overflow: hidden; }
+  .cloud-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid #f0f0f0; }
+  .cloud-title { font-size: 16px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 6px; }
+  .cloud-close { font-size: 22px; color: #bbb; cursor: pointer; line-height: 1; }
+  .cloud-body { padding: 20px; }
+  .cloud-info { background: #f0f7ff; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: #555; line-height: 1.7; }
+  .cloud-info strong { color: #4A90E2; }
+  .cloud-status { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #f9f9f9; border-radius: 10px; margin-bottom: 14px; font-size: 13px; color: #666; }
+  .cloud-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cloud-status-dot.offline { background: #ddd; }
+  .cloud-status-dot.online { background: #52c41a; }
+  .cloud-status-dot.syncing { background: #faad14; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .cloud-btn-row { display: flex; flex-direction: column; gap: 10px; }
+  .cloud-btn { width: 100%; padding: 13px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .cloud-btn:active { transform: scale(0.97); }
+  .cloud-btn-upload { background: #4A90E2; color: white; }
+  .cloud-btn-upload:hover { background: #3a7fc4; }
+  .cloud-btn-download { background: white; color: #4A90E2; border: 1.5px solid #4A90E2; }
+  .cloud-btn-download:hover { background: #e6f0ff; }
+  .cloud-warning { font-size: 11px; color: #ff4d4f; background: #fff2f0; border-radius: 8px; padding: 8px 12px; margin-top: 12px; }
+  .cloud-success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; font-size: 13px; padding: 10px 14px; border-radius: 10px; margin-top: 12px; display: none; }
+  .cloud-meta { font-size: 11px; color: #aaa; text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== 工具模式 ===================== -->
+<div id="toolMode" class="tool-mode">
+  <div class="header">
+    <h1>⭐ 星星老师作业检查记录</h1>
+    <div class="tabs" id="classTabs"></div>
+  </div>
+  <div class="mode-switch">
+    <button class="mode-btn active" id="modeToolBtn" onclick="setMode('tool')">✏️ 检查</button>
+    <button class="mode-btn" id="modeDisplayBtn" onclick="setMode('display')">🖼️ 展示</button>
+    <button class="mode-btn" id="modeHistoryBtn" onclick="setMode('history')">📂 历史</button>
+    <button class="mode-btn" id="modeCloudBtn" onclick="openCloudSync()" style="border-color:#fa8c16;color:#fa8c16;">☁️ 云同步</button>
+  </div>
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="tool-body">
+    <div class="tool-content"><div id="cardContainer"></div></div>
+    <div class="letter-nav" id="letterNav"></div>
+  </div>
+  <div class="bottom-bar">
+    <input type="date" class="date-input" id="dateInput">
+    <button class="action-btn export-btn" onclick="exportData()">📤 导出</button>
+    <button class="action-btn save-btn" onclick="saveData()">💾 保存</button>
+  </div>
+</div>
+
+<!-- ===================== 展示模式 ===================== -->
+<div id="displayMode" class="display-mode hidden">
+  <div class="display-header">
+    <div class="display-title">⭐ 星星老师作业检查结果</div>
+    <div class="display-date" id="displayDate"></div>
+  </div>
+  <div class="display-class-tabs" id="displayClassTabs"></div>
+  <div class="display-mode-bar">
+    <button class="display-mode-btn" onclick="setMode('tool')">✏️ 返回检查</button>
+  </div>
+  <div id="displayContent"></div>
+  <div class="display-footer">截图保存 · 仅供家长参考</div>
+</div>
+
+<!-- ===================== 历史记录模式 ===================== -->
+<div id="historyMode" class="history-mode hidden">
+  <div class="history-header">
+    <h2>📂 历史记录</h2>
+    <div class="history-mode-bar">
+      <button class="history-back-btn" onclick="setMode('tool')">✏️ 返回检查</button>
+      <button class="history-back-btn" onclick="exportAllData()">📤 导出全部</button>
+    </div>
+  </div>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ===================== 临时调课选人弹层 ===================== -->
+<div class="temp-picker-mask hidden" id="tempPickerMask" onclick="closeTempPicker(event)">
+  <div class="temp-picker-sheet" onclick="event.stopPropagation()">
+    <div class="temp-picker-header">
+      <div class="temp-picker-title">➕ 临时调入学生</div>
+      <div class="temp-picker-close" onclick="closeTempPicker()">×</div>
+    </div>
+    <input class="temp-picker-search" id="tempSearch" placeholder="搜索已有学生姓名…" oninput="renderTempPickerList()" />
+    <div class="temp-picker-list" id="tempPickerList"></div>
+    <div class="manual-add-area">
+      <div class="manual-add-label">✏️ 手动添加（试听生等）</div>
+      <div class="manual-add-row">
+        <input class="manual-add-input" id="manualNameInput" placeholder="输入学生姓名" maxlength="10" />
+        <button class="manual-add-confirm" onclick="doManualAdd()">添加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 云同步弹层 ===================== -->
+<div class="cloud-mask hidden" id="cloudMask" onclick="closeCloudSync(event)">
+  <div class="cloud-panel" onclick="event.stopPropagation()">
+    <div class="cloud-header">
+      <div class="cloud-title">☁️ 云同步备份</div>
+      <div class="cloud-close" onclick="closeCloudSync()">×</div>
+    </div>
+    <div class="cloud-body">
+      <div class="cloud-info">
+        <strong>☁️ 什么是云同步？</strong><br>
+        将本地数据备份到腾讯云，换设备时可一键恢复。<br>
+        同一账号下所有设备共享一份数据。
+      </div>
+      <div class="cloud-status" id="cloudStatus">
+        <div class="cloud-status-dot offline" id="cloudStatusDot"></div>
+        <span id="cloudStatusText">正在连接云端…</span>
+      </div>
+      <div class="cloud-btn-row">
+        <button class="cloud-btn cloud-btn-upload" id="cloudUploadBtn" onclick="doCloudUpload()">
+          ⬆️ 备份到云端
+        </button>
+        <button class="cloud-btn cloud-btn-download" id="cloudDownloadBtn" onclick="doCloudDownload()">
+          ⬇️ 从云端恢复
+        </button>
+      </div>
+      <div class="cloud-warning" id="cloudWarning" style="display:none"></div>
+      <div class="cloud-success" id="cloudSuccess"></div>
+      <div class="cloud-meta" id="cloudMeta"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 数据配置 ==========
+const CLASSES = {
+  '周六上午SS': ['陈奕帆','桂以希','黄绎尘','刘晏辰','刘展睿','罗俊阳','罗其度','罗煜','李萧航','宋佳弈','陶千煦','杨皓钧','杨靖浩','杨仲豪','张皓博','张玠','曾泓凯','周阳'],
+  '周六下午SS1': ['曾楷涵','邓子谦','黄承睿','李祉一','田林钊','杨子煜','张世谦','郑景熙'],
+  '周六晚上SS': ['曾令山','曾一宸','陈柏恺','万宸希','夏钒'],
+  '周日上午SS': ['崔景天','高义轩','何嘉骏','鞠菲彦','李岩泽','李衍成','林茜妍','刘陶然','吕佳洋','钱裕才','邵思竣','晏宗铭','瞿子博','周芷毅']
+};
+const HOMEWORK_ITEMS = [
+  { key: 'review', label: '完成复习建议' },
+  { key: 'correction', label: '完成例题订正' },
+  { key: 'preview', label: '完成市北预习' }
+];
+const PILL_CLASSES = ['', 'pill-green', 'pill-yellow', 'pill-red'];
+const PILL_LABELS = ['未交', '✓ 完成', '△ 部分', '✗ 缺/差'];
+const PILL_LABELS_SHORT = ['—', '✓', '△', '✗'];
+const PY_MAP = { '陈':'C','崔':'C','曾':'Z','邓':'D','高':'G','桂':'G','何':'H','黄':'H','鞠':'J','刘':'L','李':'L','罗':'L','林':'L','吕':'L','马':'M','钱':'Q','瞿':'Q','邵':'S','宋':'S','陶':'T','田':'T','万':'W','夏':'X','晏':'Y','杨':'Y','张':'Z','郑':'Z','周':'Z' };
+
+// ========== 状态管理 ==========
+let currentClass = Object.keys(CLASSES)[0];
+let displayClass = Object.keys(CLASSES)[0];
+let records = {};
+let checkedDates = {};
+let currentMode = 'tool';
+let tempStudents = {};   // { date: { targetCls: [{name, fromCls}] } }
+let absentStudents = {}; // { date: { originalCls: name[] } }
+// 历史页展开状态 & 当前展示班级
+let historyOpenDates = {};
+let historyDetailClass = {};
+
+function getTempKey()   { return 'hw_temp_students'; }
+function getAbsentKey() { return 'hw_absent_students'; }
+
+function getTempList(date, cls) { return tempStudents[date]?.[cls] || []; }
+
+function isAbsent(date, cls, name) {
+  const arr = absentStudents[date]?.[cls];
+  return Array.isArray(arr) ? arr.includes(name) : false;
+}
+
+function addTempStudent(date, targetCls, name, fromCls) {
+  if (!tempStudents[date]) tempStudents[date] = {};
+  if (!tempStudents[date][targetCls]) tempStudents[date][targetCls] = [];
+  if (!tempStudents[date][targetCls].some(s => s.name === name)) {
+    tempStudents[date][targetCls].push({ name, fromCls });
+    localStorage.setItem(getTempKey(), JSON.stringify(tempStudents));
+  }
+  if (fromCls && fromCls !== '__manual__') {
+    if (!absentStudents[date]) absentStudents[date] = {};
+    if (!absentStudents[date][fromCls]) absentStudents[date][fromCls] = [];
+    if (!absentStudents[date][fromCls].includes(name)) {
+      absentStudents[date][fromCls].push(name);
+      localStorage.setItem(getAbsentKey(), JSON.stringify(absentStudents));
+    }
+  }
+}
+
+function removeTempStudent(date, targetCls, name) {
+  if (!tempStudents[date]?.[targetCls]) return;
+  const entry = tempStudents[date][targetCls].find(s => s.name === name);
+  tempStudents[date][targetCls] = tempStudents[date][targetCls].filter(s => s.name !== name);
+  localStorage.setItem(getTempKey(), JSON.stringify(tempStudents));
+  if (entry?.fromCls && entry.fromCls !== '__manual__' && absentStudents[date]?.[entry.fromCls]) {
+    absentStudents[date][entry.fromCls] = absentStudents[date][entry.fromCls].filter(n => n !== name);
+    localStorage.setItem(getAbsentKey(), JSON.stringify(absentStudents));
+  }
+  renderTool();
+}
+
+function getEffectiveStudents(date, cls) {
+  return { base: CLASSES[cls] || [], temps: getTempList(date, cls) };
+}
+
+function getState(date, cls, name, hw) { return records[date]?.[cls]?.[name]?.[hw] ?? 0; }
+
+function classify(date, cls, name) {
+  let done = 0, partial = 0, miss = 0, unchecked = 0;
+  HOMEWORK_ITEMS.forEach(hw => {
+    const s = getState(date, cls, name, hw.key);
+    if (s === 1) done++; else if (s === 2) partial++; else if (s === 3) miss++; else unchecked++;
+  });
+  return { done, partial, miss, unchecked };
+}
+
+// ========== 模式切换 ==========
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('toolMode').classList.toggle('hidden', mode !== 'tool');
+  document.getElementById('displayMode').classList.toggle('hidden', mode !== 'display');
+  document.getElementById('historyMode').classList.toggle('hidden', mode !== 'history');
+  ['tool','display','history'].forEach(m => {
+    const btn = document.getElementById('mode' + m.charAt(0).toUpperCase() + m.slice(1) + 'Btn');
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  // 云同步按钮：只在检查模式显示，其他模式隐藏
+  const cloudBtn = document.getElementById('modeCloudBtn');
+  if (cloudBtn) cloudBtn.style.display = mode === 'tool' ? '' : 'none';
+  if (mode === 'display') renderDisplay();
+  if (mode === 'history') renderHistory();
+}
+
+// ========== 工具模式渲染 ==========
+function renderToolTabs() {
+  const container = document.getElementById('classTabs');
+  container.innerHTML = '';
+  Object.keys(CLASSES).forEach(cls => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (cls === currentClass ? ' active' : '');
+    btn.textContent = cls;
+    btn.onclick = () => { currentClass = cls; renderTool(); };
+    container.appendChild(btn);
+  });
+}
+
+function renderToolStats() {
+  const date = document.getElementById('dateInput').value;
+  const { base, temps } = getEffectiveStudents(date, currentClass);
+  const active = [...base.filter(n => !isAbsent(date, currentClass, n)), ...temps.map(t => t.name)];
+  let green = 0, yellow = 0, red = 0;
+  active.forEach(name => {
+    const c = classify(date, currentClass, name);
+    if (c.miss > 0) red++; else if (c.partial > 0) yellow++; else if (c.done > 0) green++;
+  });
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-item"><div class="stat-num stat-green">${green}</div><div class="stat-label">全部完成</div></div>
+    <div class="stat-item"><div class="stat-num stat-yellow">${yellow}</div><div class="stat-label">部分完成</div></div>
+    <div class="stat-item"><div class="stat-num stat-red">${red}</div><div class="stat-label">有问题/未完成</div></div>`;
+}
+
+function renderToolCards() {
+  const container = document.getElementById('cardContainer');
+  const date = document.getElementById('dateInput').value;
+  const { base, temps } = getEffectiveStudents(date, currentClass);
+  const absentInClass = base.filter(n => isAbsent(date, currentClass, n));
+  const activeBase = base.filter(n => !isAbsent(date, currentClass, n));
+
+  let html = `
+    <div class="temp-add-bar">
+      <button class="temp-add-btn" onclick="openTempPicker()">➕ 调入 / 添加</button>
+    </div>
+    <div class="section-title">${currentClass} · ${activeBase.length + temps.length} 名${absentInClass.length > 0 ? '（' + absentInClass.length + ' 名已调出）' : ''}${temps.length > 0 ? ' + ' + temps.length + ' 名调入' : ''}</div>`;
+
+  activeBase.forEach(name => { html += renderStudentCard(date, currentClass, name, null, false); });
+  absentInClass.forEach(name => { html += renderStudentCard(date, currentClass, name, null, true); });
+
+  if (temps.length > 0) {
+    html += `<div class="section-title" style="color:#fa8c16;margin-top:8px">📋 临时调入 / 手动添加</div>`;
+    temps.forEach(({ name, fromCls }) => { html += renderStudentCard(date, currentClass, name, fromCls, false); });
+  }
+  container.innerHTML = html;
+  renderLetterNav([...activeBase, ...temps.map(t => t.name)]);
+}
+
+function renderStudentCard(date, cls, name, fromCls, isAbsentCard) {
+  const letter = PY_MAP[name.charAt(0)] || name.charAt(0);
+  let nameHtml;
+  if (isAbsentCard) {
+    nameHtml = `<div class="student-name">${name}</div>`;
+  } else if (fromCls !== null) {
+    const label = fromCls === '__manual__' ? '手动添加' : `调课自 ${fromCls}`;
+    nameHtml = `<div class="student-name student-name-temp">
+      <span>${name}</span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span class="temp-badge">${label}</span>
+        <button class="temp-remove-btn" onclick="removeTempStudent('${date}','${cls}','${name}')">移除</button>
+      </span>
+    </div>`;
+  } else {
+    nameHtml = `<div class="student-name">${name}</div>`;
+  }
+
+  let rows = '';
+  if (!isAbsentCard) {
+    HOMEWORK_ITEMS.forEach(hw => {
+      const s = getState(date, cls, name, hw.key);
+      rows += `<div class="hw-row">
+        <span class="hw-label">${hw.label}</span>
+        <div class="hw-opts">
+          <div class="hw-opt hw-opt-green${s===1?' selected':''}" onclick="setState('${date}','${cls}','${name}','${hw.key}',1)">✓</div>
+          <div class="hw-opt hw-opt-yellow${s===2?' selected':''}" onclick="setState('${date}','${cls}','${name}','${hw.key}',2)">△</div>
+          <div class="hw-opt hw-opt-red${s===3?' selected':''}" onclick="setState('${date}','${cls}','${name}','${hw.key}',3)">✗</div>
+        </div>
+      </div>`;
+    });
+  }
+  return `<div class="student-card${isAbsentCard?' student-card-absent':''}" data-letter="${letter}" data-name="${name}">${nameHtml}${rows}</div>`;
+}
+
+function renderLetterNav(students) {
+  const nav = document.getElementById('letterNav');
+  const unique = [...new Set(students.map(n => PY_MAP[n.charAt(0)] || n.charAt(0)))].sort();
+  nav.innerHTML = unique.map(l => `<div class="letter-nav-item" data-letter="${l}">${l}</div>`).join('');
+  nav.onclick = (e) => {
+    const item = e.target.closest('.letter-nav-item');
+    if (!item) return;
+    const first = document.querySelector(`.student-card[data-letter="${item.dataset.letter}"]`);
+    if (!first) return;
+    window.scrollTo({ top: first.getBoundingClientRect().top + window.pageYOffset - 190, behavior: 'smooth' });
+  };
+}
+
+function setState(date, cls, name, hwKey, val) {
+  if (!records[date]) records[date] = {};
+  if (!records[date][cls]) records[date][cls] = {};
+  if (!records[date][cls][name]) records[date][cls][name] = {};
+  records[date][cls][name][hwKey] = (getState(date, cls, name, hwKey) === val) ? 0 : val;
+  checkedDates[date] = true;
+  localStorage.setItem('hw_check_data', JSON.stringify(records));
+  localStorage.setItem('hw_check_dates', JSON.stringify(checkedDates));
+  renderTool();
+}
+
+function renderTool() { renderToolTabs(); renderToolStats(); renderToolCards(); }
+
+// ========== 临时调课弹层 ==========
+function openTempPicker() {
+  document.getElementById('tempPickerMask').classList.remove('hidden');
+  document.getElementById('tempSearch').value = '';
+  renderTempPickerList();
+  setTimeout(() => document.getElementById('tempSearch').focus(), 100);
+}
+function closeTempPicker(e) {
+  if (e && e.target !== document.getElementById('tempPickerMask')) return;
+  document.getElementById('tempPickerMask').classList.add('hidden');
+}
+function renderTempPickerList() {
+  const date = document.getElementById('dateInput').value;
+  const keyword = (document.getElementById('tempSearch').value || '').trim();
+  const { temps } = getEffectiveStudents(date, currentClass);
+  let html = '';
+  Object.entries(CLASSES).forEach(([cls, students]) => {
+    if (cls === currentClass) return;
+    const matched = keyword ? students.filter(n => n.includes(keyword)) : students;
+    if (!matched.length) return;
+    html += `<div class="temp-picker-cls-title">${cls}</div>`;
+    matched.forEach(name => {
+      const addedHere = temps.some(t => t.name === name);
+      html += `<div class="temp-picker-item">
+        <div>
+          <div class="temp-picker-item-name">${name}</div>
+          <div class="temp-picker-item-from">${addedHere ? '已调入本班 · 原班：' : '原班：'}${cls}</div>
+        </div>
+        ${addedHere
+          ? `<button class="temp-picker-item-added" disabled>✓</button>`
+          : `<button class="temp-picker-item-add" onclick="doAddTemp('${date}','${currentClass}','${name}','${cls}')">+</button>`}
+      </div>`;
+    });
+  });
+  if (!html) html = `<div style="text-align:center;color:#ccc;padding:20px 0 8px;font-size:13px">${keyword ? '没有匹配的学生' : '其他班级学生均已处理'}</div>`;
+  document.getElementById('tempPickerList').innerHTML = html;
+}
+function doAddTemp(date, cls, name, fromCls) {
+  addTempStudent(date, cls, name, fromCls);
+  renderTempPickerList(); renderTool();
+  showToast(`✅ ${name} 已调入 ${cls}`);
+}
+function doManualAdd() {
+  const input = document.getElementById('manualNameInput');
+  const name = input.value.trim();
+  if (!name) { showToast('请输入学生姓名'); return; }
+  const date = document.getElementById('dateInput').value;
+  const { base, temps } = getEffectiveStudents(date, currentClass);
+  if ([...base, ...temps.map(t => t.name)].includes(name)) { showToast(`${name} 已在当前班级`); return; }
+  addTempStudent(date, currentClass, name, '__manual__');
+  input.value = '';
+  renderTempPickerList(); renderTool();
+  showToast(`✅ ${name} 已手动添加`);
+}
+
+// ========== 历史记录模式 ==========
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  // 从 records 和 checkedDates 合并所有日期
+  const allDates = [...new Set([...Object.keys(records), ...Object.keys(checkedDates)])].sort().reverse();
+
+  if (!allDates.length) {
+    container.innerHTML = `<div class="history-empty">📭 暂无历史记录<br><span style="font-size:12px;margin-top:8px;display:block">检查完作业后点击"保存"，数据将出现在这里</span></div>`;
+    return;
+  }
+
+  container.innerHTML = allDates.map(date => buildHistoryDateCard(date)).join('');
+}
+
+function buildHistoryDateCard(date) {
+  const isOpen = !!historyOpenDates[date];
+  // 计算每个班级的汇总摘要
+  const summaryPills = Object.keys(CLASSES).map(cls => {
+    const { base, temps } = getEffectiveStudents(date, cls);
+    const active = [...base.filter(n => !isAbsent(date, cls, n)), ...temps.map(t => t.name)];
+    let done = 0, partial = 0, miss = 0, any = false;
+    active.forEach(name => {
+      const c = classify(date, cls, name);
+      if (c.done + c.partial + c.miss > 0) any = true;
+      if (c.miss > 0) miss++; else if (c.partial > 0) partial++; else if (c.done > 0) done++;
+    });
+    if (!any) return '';
+    const pillCls = miss > 0 ? 'history-cls-pill-red' : (partial > 0 ? 'history-cls-pill-yellow' : 'history-cls-pill-green');
+    const shortName = cls.replace('SS', '').replace('周六', '六').replace('周日', '日');
+    return `<span class="history-cls-pill ${pillCls}">${shortName} ${done}✓${partial>0?' '+partial+'△':''}${miss>0?' '+miss+'✗':''}</span>`;
+  }).filter(Boolean).join('');
+
+  // 内嵌详情
+  const detailCls = historyDetailClass[date] || Object.keys(CLASSES)[0];
+  const detailHtml = isOpen ? buildHistoryDetail(date, detailCls) : '';
+
+  return `<div class="history-date-card" id="hcard-${date}">
+    <div class="history-date-header" onclick="toggleHistoryDate('${date}')">
+      <div>
+        <div class="history-date-title">${date}</div>
+        <div class="history-date-sub">${summaryPills ? '' : '无检查记录'}</div>
+      </div>
+      <div class="history-date-arrow${isOpen ? ' open' : ''}">›</div>
+    </div>
+    ${summaryPills ? `<div class="history-date-pills">${summaryPills}</div>` : ''}
+    <div class="history-date-actions">
+      <button class="history-action-btn history-export-btn" onclick="exportDataByDate('${date}')">📤 导出</button>
+      <button class="history-action-btn history-delete-btn" onclick="deleteHistoryDate('${date}')">🗑️ 删除</button>
+    </div>
+    <div class="history-detail${isOpen ? ' open' : ''}" id="hdetail-${date}">${detailHtml}</div>
+  </div>`;
+}
+
+function buildHistoryDetail(date, activeCls) {
+  const clsTabs = Object.keys(CLASSES).map(cls =>
+    `<button class="history-detail-cls-btn${cls === activeCls ? ' active' : ''}" onclick="switchHistoryClass('${date}','${cls}')">${cls.replace('周六','六').replace('周日','日')}</button>`
+  ).join('');
+
+  const { base, temps } = getEffectiveStudents(date, activeCls);
+  const active = [...base.filter(n => !isAbsent(date, activeCls, n)), ...temps.map(t => t.name)];
+
+  const rows = active.map((name, i) => {
+    const pills = HOMEWORK_ITEMS.map(hw => {
+      const s = getState(date, activeCls, name, hw.key);
+      const cls = s === 0 ? 'pill-gray' : PILL_CLASSES[s];
+      return `<div class="history-hw-pill ${cls}">${hw.label.replace('完成','').replace('建议','复习').replace('订正','订正').replace('预习','预习')}<br><b>${PILL_LABELS_SHORT[s]}</b></div>`;
+    }).join('');
+    return `<div class="history-student-row">
+      <div class="history-student-idx">${i+1}</div>
+      <div class="history-student-name">${name}</div>
+      <div class="history-hw-pills">${pills}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="history-detail-cls-tabs">${clsTabs}</div>
+    <div class="history-detail-body">${rows || '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">该班当日无记录</div>'}</div>`;
+}
+
+function toggleHistoryDate(date) {
+  historyOpenDates[date] = !historyOpenDates[date];
+  if (!historyDetailClass[date]) historyDetailClass[date] = Object.keys(CLASSES)[0];
+  // 局部更新卡片
+  const card = document.getElementById(`hcard-${date}`);
+  if (card) {
+    const newCard = document.createElement('div');
+    newCard.innerHTML = buildHistoryDateCard(date);
+    card.replaceWith(newCard.firstChild);
+  }
+}
+
+function switchHistoryClass(date, cls) {
+  historyDetailClass[date] = cls;
+  const detail = document.getElementById(`hdetail-${date}`);
+  if (detail) detail.innerHTML = buildHistoryDetail(date, cls);
+  // 更新 tab 高亮
+  detail.querySelectorAll('.history-detail-cls-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === cls.replace('周六','六').replace('周日','日'));
+  });
+}
+
+function deleteHistoryDate(date) {
+  if (!confirm(`确认删除 ${date} 的全部检查记录？此操作不可恢复。`)) return;
+  delete records[date];
+  delete checkedDates[date];
+  delete tempStudents[date];
+  delete absentStudents[date];
+  delete historyOpenDates[date];
+  delete historyDetailClass[date];
+  localStorage.setItem('hw_check_data', JSON.stringify(records));
+  localStorage.setItem('hw_check_dates', JSON.stringify(checkedDates));
+  localStorage.setItem(getTempKey(), JSON.stringify(tempStudents));
+  localStorage.setItem(getAbsentKey(), JSON.stringify(absentStudents));
+  renderHistory();
+  showToast(`🗑️ 已删除 ${date} 的记录`);
+}
+
+// ========== 展示模式渲染 ==========
+function renderDisplayTabs() {
+  document.getElementById('displayClassTabs').innerHTML = Object.keys(CLASSES).map(cls =>
+    `<button class="display-class-btn${cls === displayClass ? ' active' : ''}" onclick="displayClass='${cls}';renderDisplay();">${cls}</button>`
+  ).join('');
+}
+
+function renderDisplay() {
+  const date = document.getElementById('dateInput').value;
+  const { base, temps } = getEffectiveStudents(date, displayClass);
+  const activeBase = base.filter(n => !isAbsent(date, displayClass, n));
+  const allStudents = [...activeBase.map(n => ({ name: n, fromCls: null })), ...temps.map(t => ({ name: t.name, fromCls: t.fromCls }))];
+
+  renderDisplayTabs();
+  document.getElementById('displayDate').textContent = date + ' · ' + displayClass;
+
+  let done = 0, partial = 0, miss = 0;
+  allStudents.forEach(({ name }) => {
+    const c = classify(date, displayClass, name);
+    if (c.miss > 0) miss++; else if (c.partial > 0) partial++; else if (c.done > 0 && c.unchecked === 0) done++;
+  });
+  const total = allStudents.length;
+  const rate = total > 0 ? Math.round(done / total * 100) : 0;
+
+  const rows = allStudents.map(({ name, fromCls }, i) => {
+    const pills = HOMEWORK_ITEMS.map(hw => {
+      const s = getState(date, displayClass, name, hw.key);
+      return `<div class="display-hw-pill ${s===0?'pill-gray':PILL_CLASSES[s]}">${hw.label}<br><b>${PILL_LABELS[s]}</b></div>`;
+    }).join('');
+    const suffix = fromCls && fromCls !== '__manual__'
+      ? `<span style="font-size:10px;color:#fa8c16;margin-left:3px">调</span>`
+      : (fromCls === '__manual__' ? `<span style="font-size:10px;color:#aaa;margin-left:3px">访</span>` : '');
+    return `<div class="display-student-row">
+      <div class="display-student-idx">${i+1}</div>
+      <div class="display-student-name">${name}${suffix}</div>
+      <div class="display-hw-pills">${pills}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('displayContent').innerHTML = `
+    <div class="display-summary">
+      <div class="display-summary-item"><div class="display-summary-num" style="color:#52c41a">${done}</div><div class="display-summary-label">全部完成</div></div>
+      <div class="display-summary-item"><div class="display-summary-num" style="color:#faad14">${partial}</div><div class="display-summary-label">部分完成</div></div>
+      <div class="display-summary-item"><div class="display-summary-num" style="color:#ff4d4f">${miss}</div><div class="display-summary-label">有问题/未交</div></div>
+    </div>
+    <div class="display-rate">
+      <div class="display-rate-label">班级作业完成率（全部完成）</div>
+      <div class="display-rate-bar"><div class="display-rate-fill" style="width:${rate}%"></div></div>
+      <div class="display-rate-text">${rate}% · ${done}/${total} 人</div>
+    </div>
+    <div class="display-legend">
+      <div class="display-legend-item"><div class="display-legend-dot" style="background:#52c41a"></div>已完成</div>
+      <div class="display-legend-item"><div class="display-legend-dot" style="background:#faad14"></div>部分完成</div>
+      <div class="display-legend-item"><div class="display-legend-dot" style="background:#ff4d4f"></div>有问题/未交</div>
+      <div class="display-legend-item"><div class="display-legend-dot" style="background:#ddd"></div>未检查</div>
+    </div>
+    <hr class="display-divider">
+    <div class="display-section-title">${displayClass} · ${total} 名学生${temps.length > 0 ? '（含 '+temps.length+' 名调入）' : ''}</div>
+    ${rows}`;
+}
+
+// ========== 存储与导出 ==========
+function saveData() {
+  localStorage.setItem('hw_check_data', JSON.stringify(records));
+  localStorage.setItem('hw_check_dates', JSON.stringify(checkedDates));
+  localStorage.setItem('hw_last_class', currentClass);
+  showToast('✅ 已保存');
+}
+
+function buildCsv(date) {
+  let csv = '\uFEFF日期,班级,姓名,是否调课,原班级,完成复习建议,完成例题订正,完成市北预习\n';
+  Object.entries(CLASSES).forEach(([cls, students]) => {
+    students.filter(n => !isAbsent(date, cls, n)).forEach(name => {
+      const items = HOMEWORK_ITEMS.map(hw => ['','✓','△','✗'][getState(date, cls, name, hw.key)]);
+      csv += `"${date}","${cls}","${name}","否","","${items[0]}","${items[1]}","${items[2]}"\n`;
+    });
+    getTempList(date, cls).forEach(({ name, fromCls }) => {
+      const items = HOMEWORK_ITEMS.map(hw => ['','✓','△','✗'][getState(date, cls, name, hw.key)]);
+      const origin = fromCls === '__manual__' ? '手动添加' : fromCls;
+      csv += `"${date}","${cls}","${name}","是","${origin}","${items[0]}","${items[1]}","${items[2]}"\n`;
+    });
+  });
+  return csv;
+}
+
+function exportData() {
+  const date = document.getElementById('dateInput').value;
+  downloadCsv(buildCsv(date), `作业检查_${date || '未选日期'}.csv`);
+  showToast('📤 已导出 CSV');
+}
+
+function exportDataByDate(date) {
+  downloadCsv(buildCsv(date), `作业检查_${date}.csv`);
+  showToast('📤 已导出 CSV');
+}
+
+function exportAllData() {
+  const allDates = [...new Set([...Object.keys(records), ...Object.keys(checkedDates)])].sort();
+  if (!allDates.length) { showToast('暂无数据可导出'); return; }
+  let csv = '\uFEFF日期,班级,姓名,是否调课,原班级,完成复习建议,完成例题订正,完成市北预习\n';
+  allDates.forEach(date => { csv += buildCsv(date).split('\n').slice(1).join('\n') + '\n'; });
+  downloadCsv(csv, `作业检查_全部记录.csv`);
+  showToast(`📤 已导出 ${allDates.length} 天的全部记录`);
+}
+
+function downloadCsv(csv, filename) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 1800);
+}
+
+// ========== 初始化 ==========
+function init() {
+  const savedData   = localStorage.getItem('hw_check_data');   if (savedData)   records        = JSON.parse(savedData);
+  const savedDates  = localStorage.getItem('hw_check_dates');  if (savedDates)  checkedDates   = JSON.parse(savedDates);
+  const savedClass  = localStorage.getItem('hw_last_class');   if (savedClass && CLASSES[savedClass]) currentClass = savedClass;
+  const savedTemp   = localStorage.getItem(getTempKey());      if (savedTemp)   tempStudents   = JSON.parse(savedTemp);
+  const savedAbsent = localStorage.getItem(getAbsentKey());    if (savedAbsent) absentStudents = JSON.parse(savedAbsent);
+
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('dateInput').value = today;
+  document.getElementById('dateInput').max = today;
+  displayClass = Object.keys(CLASSES)[0];
+
+  document.getElementById('dateInput').addEventListener('change', () => {
+    if (currentMode === 'display') renderDisplay();
+    else renderTool();
+  });
+
+  renderTool();
+}
+
+init();
+
+// ========== 云同步（腾讯云云函数） ==========
+const CLOUD_FUNCTION_URL = 'https://paradox-d6gzfs7epbf713267-1392357064.ap-shanghai.app.tcloudbase.com/hwBackup';
+const BACKUP_VER = 'v1';
+
+// 调用云函数
+async function callCloudFunction(action, payload) {
+  const body = { action, payload };
+  
+  try {
+    const res = await fetch(CLOUD_FUNCTION_URL, {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    if (err.name === 'TypeError' || err.message.includes('Failed to fetch')) {
+      throw new Error('网络请求失败，请检查网络连接');
+    }
+    throw err;
+  }
+}
+
+let cloudReady = true;
+
+function setCloudStatus(text, state) {
+  const dot = document.getElementById('cloudStatusDot');
+  const txt = document.getElementById('cloudStatusText');
+  if (!dot || !txt) return;
+  dot.className = 'cloud-status-dot ' + state;
+  txt.textContent = text;
+}
+
+function showCloudWarning(msg) {
+  const el = document.getElementById('cloudWarning');
+  if (el) { el.textContent = '⚠️ ' + msg; el.style.display = 'block'; }
+}
+
+function showCloudSuccess(msg) {
+  const el = document.getElementById('cloudSuccess');
+  if (el) { el.textContent = '✅ ' + msg; el.style.display = 'block'; }
+  setTimeout(() => { if (el) el.style.display = 'none'; }, 4000);
+}
+
+function openCloudSync() {
+  document.getElementById('cloudMask').classList.remove('hidden');
+  document.getElementById('cloudWarning').style.display = 'none';
+  document.getElementById('cloudSuccess').style.display = 'none';
+  setCloudStatus('已就绪 · 可以备份或恢复', 'online');
+  document.getElementById('cloudUploadBtn').disabled = false;
+  document.getElementById('cloudDownloadBtn').disabled = false;
+  loadCloudMeta();
+}
+
+function closeCloudSync(e) {
+  if (e && e.target !== document.getElementById('cloudMask')) return;
+  document.getElementById('cloudMask').classList.add('hidden');
+}
+
+async function loadCloudMeta() {
+  try {
+    const res = await callCloudFunction('query', {});
+    if (res.success && res.data) {
+      const d = new Date(res.data.updatedAt);
+      document.getElementById('cloudMeta').textContent = '云端已有数据 · 上次更新：' + d.toLocaleString('zh-CN');
+    } else if (res.success && !res.data) {
+      document.getElementById('cloudMeta').textContent = '云端暂无数据，点击「备份到云端」上传';
+    } else {
+      document.getElementById('cloudMeta').textContent = '连接检查失败：' + (res.error || '未知错误');
+    }
+  } catch (e) {
+    const msg = e.message || String(e);
+    document.getElementById('cloudMeta').textContent = '连接检查失败：' + msg;
+  }
+}
+
+function buildBackupPayload() {
+  return {
+    ver: BACKUP_VER,
+    updatedAt: Date.now(),
+    records: records,
+    checkedDates: checkedDates,
+    tempStudents: tempStudents,
+    absentStudents: absentStudents,
+    classes: CLASSES,
+    lastClass: currentClass
+  };
+}
+
+function restoreFromPayload(data) {
+  if (data.records) { records = data.records; localStorage.setItem('hw_check_data', JSON.stringify(records)); }
+  if (data.checkedDates) { checkedDates = data.checkedDates; localStorage.setItem('hw_check_dates', JSON.stringify(checkedDates)); }
+  if (data.tempStudents) { tempStudents = data.tempStudents; localStorage.setItem(getTempKey(), JSON.stringify(tempStudents)); }
+  if (data.absentStudents) { absentStudents = data.absentStudents; localStorage.setItem(getAbsentKey(), JSON.stringify(absentStudents)); }
+  if (data.lastClass && CLASSES[data.lastClass]) { currentClass = data.lastClass; }
+  historyOpenDates = {};
+  historyDetailClass = {};
+}
+
+async function doCloudUpload() {
+  const btn = document.getElementById('cloudUploadBtn');
+  btn.disabled = true; btn.textContent = '⏳ 正在上传…';
+  setCloudStatus('正在上传到云端…', 'syncing');
+  document.getElementById('cloudWarning').style.display = 'none';
+  try {
+    const payload = buildBackupPayload();
+    const res = await callCloudFunction('upload', payload);
+    
+    if (!res.success) {
+      throw new Error(res.error || '上传失败');
+    }
+    
+    showCloudSuccess('备份成功！数据已保存到云端');
+    loadCloudMeta();
+    setCloudStatus('已连接 · 上传完成', 'online');
+  } catch (err) {
+    const msg = err.message || String(err);
+    showCloudWarning('上传失败：' + msg);
+    setCloudStatus('上传失败', 'offline');
+  } finally {
+    btn.disabled = false; btn.textContent = '⬆️ 备份到云端';
+  }
+}
+
+async function doCloudDownload() {
+  const btn = document.getElementById('cloudDownloadBtn');
+  btn.disabled = true; btn.textContent = '⏳ 正在下载…';
+  setCloudStatus('正在从云端下载…', 'syncing');
+  document.getElementById('cloudWarning').style.display = 'none';
+  try {
+    const res = await callCloudFunction('query', {});
+    
+    if (!res.success) {
+      throw new Error(res.error || '查询失败');
+    }
+    
+    if (!res.data) {
+      showCloudWarning('云端暂无数据，请先备份');
+      setCloudStatus('云端暂无数据', 'online');
+      btn.disabled = false; btn.textContent = '⬇️ 从云端恢复';
+      return;
+    }
+    
+    const payload = res.data;
+    if (!payload.records) {
+      showCloudWarning('云端数据格式异常');
+      return;
+    }
+    
+    const dateCount = Object.keys(payload.checkedDates || {}).length;
+    restoreFromPayload(payload);
+    showCloudSuccess(`恢复成功！已导入 ${dateCount} 天的数据`);
+    setCloudStatus('已连接 · 恢复完成', 'online');
+    if (currentMode !== 'tool') setMode('tool');
+    else renderTool();
+  } catch (err) {
+    const msg = err.message || String(err);
+    showCloudWarning('恢复失败：' + msg);
+    setCloudStatus('恢复失败', 'offline');
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇️ 从云端恢复';
+  }
+}
+</script>
+</body>
+</html>
